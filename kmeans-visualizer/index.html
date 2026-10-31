@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-Means Visualizer — Jawad's ML Lab Project</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;background:#0b0f0d;color:#fff;font-family:Arial,Helvetica,sans-serif}
+  header{padding:22px 28px 8px} h1{color:#3dff8f;margin:0 0 6px;font-size:28px}
+  p.sub{color:#aab5b0;margin:0 0 16px;line-height:1.5}
+  .wrap{display:flex;flex-wrap:wrap;gap:18px;padding:0 28px 28px}
+  .panel{background:#141a17;border:1px solid #243029;border-radius:16px;padding:16px}
+  canvas{background:#0e1512;border:1px solid #243029;border-radius:12px;cursor:crosshair;width:100%;max-width:760px;height:auto;display:block}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;align-items:center}
+  button{background:#3dff8f;color:#07120b;border:0;padding:10px 16px;border-radius:999px;font-weight:bold;cursor:pointer}
+  button.secondary{background:#22302a;color:#fff} button:hover{opacity:.85}
+  label{color:#aab5b0} select,input{padding:9px;border-radius:8px;border:1px solid #33413a;background:#0e1512;color:#fff}
+  .stats{color:#ffd23f;font-weight:bold;margin:8px 0}
+  .explain{max-width:360px;line-height:1.6;color:#c8d2cc} .explain h2{color:#3dff8f}
+  .legend span{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .hint{color:#8b9892;font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1>K-Means Visualizer</h1>
+  <p class="sub">ML Lab 9 ka concept, live dekh kar samjho. Canvas par click kar ke apne points add karo, phir <b>Run</b> dabao aur dekho centroids kaise move kar ke clusters banate hain.</p>
+</header>
+<div class="wrap">
+  <div class="panel">
+    <canvas id="cv" width="760" height="500"></canvas>
+    <div class="controls">
+      <label>K: <select id="k"><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+      <button id="run">▶ Run</button>
+      <button id="step" class="secondary">Step</button>
+      <button id="random">Random Points</button>
+      <button id="reset" class="secondary">Reset</button>
+      <button id="clear" class="secondary">Clear</button>
+    </div>
+    <div class="stats" id="stats">Points: 0 | Iteration: 0 | Status: points add karo ya Random dabao</div>
+    <div class="legend" id="legend"></div>
+    <p class="hint">Tip: Canvas par click = naya point. Pehle se 3 alag groups ke points chahiye to Random dabao, phir Run.</p>
+  </div>
+  <div class="panel explain">
+    <h2>K-Means kya hai?</h2>
+    <p>Unsupervised learning ka algorithm hai — bina labels ke data ko groups (clusters) me baanta hai.</p>
+    <ol>
+      <li>K centroids (markaz) randomly chuno.</li>
+      <li>Har point ko sab se qareebi centroid se joro.</li>
+      <li>Har cluster ka naya markaz (average) nikalo.</li>
+      <li>Centroids ruk jayen to stop — clusters ready!</li>
+    </ol>
+    <p><b>Portfolio note:</b> Yehi concept ML Lab 9 (K-Means + Hierarchical Clustering) me parha tha. Is demo me asli K-Means algorithm chal raha hai, koi fake animation nahi.</p>
+  </div>
+</div>
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const COLORS=['#3dff8f','#ffd23f','#ff5a5a','#5aa8ff','#c86bff','#ff8a3d'];
+let points=[], centroids=[], assign=[], iter=0, running=false, timer=null;
+const stats=document.getElementById('stats'), legend=document.getElementById('legend');
+function randPoints(n){
+  points=[];
+  const groups=[[150,140],[600,140],[380,380],[150,400],[600,400]];
+  for(let i=0;i<n;i++){
+    const g=groups[i%5];
+    points.push({x:g[0]+(Math.random()*140-70), y:g[1]+(Math.random()*110-55)});
+  }
+  resetRun();
+}
+function resetRun(){centroids=[];assign=[];iter=0;running=false;clearInterval(timer);draw();update();}
+function initCentroids(){
+  const k=+document.getElementById('k').value;
+  const idx=[...points.keys()].sort(()=>Math.random()-0.5).slice(0,k);
+  centroids=idx.map(i=>({...points[i]})); assign=new Array(points.length).fill(-1); iter=0;
+}
+function step(){
+  if(!points.length) return;
+  if(!centroids.length) initCentroids();
+  let changed=false;
+  points.forEach((p,i)=>{
+    let best=0,bd=1e18;
+    centroids.forEach((c,j)=>{const d=(p.x-c.x)**2+(p.y-c.y)**2; if(d<bd){bd=d;best=j;}});
+    if(assign[i]!==best){assign[i]=best;changed=true;}
+  });
+  centroids=centroids.map((c,j)=>{
+    const pts=points.filter((p,i)=>assign[i]===j);
+    if(!pts.length) return c;
+    return {x:pts.reduce((s,p)=>s+p.x,0)/pts.length, y:pts.reduce((s,p)=>s+p.y,0)/pts.length};
+  });
+  iter++; draw(); update(changed?'chal raha hai...':'done — centroids ruk gaye!');
+  if(!changed){running=false;clearInterval(timer);}
+}
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  points.forEach((p,i)=>{
+    ctx.fillStyle=assign[i]>=0?COLORS[assign[i]%COLORS.length]:'#888';
+    ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fill();
+  });
+  centroids.forEach((c,j)=>{
+    ctx.strokeStyle=COLORS[j%COLORS.length];ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(c.x-12,c.y-12);ctx.lineTo(c.x+12,c.y+12);ctx.moveTo(c.x+12,c.y-12);ctx.lineTo(c.x-12,c.y+12);ctx.stroke();
+  });
+}
+function update(msg){
+  stats.textContent=`Points: ${points.length} | Iteration: ${iter} | Status: ${msg||'ready'}`;
+  const k=+document.getElementById('k').value;
+  legend.innerHTML=Array.from({length:k},(_,j)=>`<span style="background:${COLORS[j%COLORS.length]}"></span>Cluster ${j+1} &nbsp;`).join('');
+}
+cv.addEventListener('click',e=>{
+  const r=cv.getBoundingClientRect();
+  points.push({x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height});
+  resetRun();
+});
+document.getElementById('run').onclick=()=>{if(points.length<2)return; if(!centroids.length)initCentroids(); running=true; clearInterval(timer); timer=setInterval(step,700);};
+document.getElementById('step').onclick=()=>{clearInterval(timer);running=false;step();};
+document.getElementById('random').onclick=()=>randPoints(36);
+document.getElementById('reset').onclick=resetRun;
+document.getElementById('clear').onclick=()=>{points=[];resetRun();};
+document.getElementById('k').onchange=resetRun;
+randPoints(36);
+</script>
+</body>
+</html>

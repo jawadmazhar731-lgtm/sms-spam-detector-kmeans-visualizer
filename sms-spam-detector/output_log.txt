@@ -1,0 +1,66 @@
+Total messages in dataset: 5572
+Ham messages: 4825
+Spam messages: 747
+
+--- BASELINE: CountVectorizer + Naive Bayes ---
+Accuracy : 0.9874
+Precision: 0.9874
+Recall   : 0.9874
+F1-Score : 0.9873
+Confusion Matrix (rows = actual, columns = predicted):
+               predicted ham   predicted spam
+actual ham     [964   2]
+actual spam    [ 12 137]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+         ham       0.99      1.00      0.99       966
+        spam       0.99      0.92      0.95       149
+
+    accuracy                           0.99      1115
+   macro avg       0.99      0.96      0.97      1115
+weighted avg       0.99      0.99      0.99      1115
+
+
+--- IMPROVED: TF-IDF + Cleaning + Naive Bayes ---
+Accuracy : 0.9839
+Precision: 0.9839
+Recall   : 0.9839
+F1-Score : 0.9835
+Confusion Matrix (rows = actual, columns = predicted):
+               predicted ham   predicted spam
+actual ham     [964   2]
+actual spam    [ 16 133]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+         ham       0.98      1.00      0.99       966
+        spam       0.99      0.89      0.94       149
+
+    accuracy                           0.98      1115
+   macro avg       0.98      0.95      0.96      1115
+weighted avg       0.98      0.98      0.98      1115
+
+
+Cross-Validation (5-fold) accuracy scores: [0.9484, 0.9664, 0.9506, 0.9473, 0.945]
+Mean cross-validation accuracy: 0.9515
+
+--- LIVE DEMO: type a message, get Spam or Ham ---
+
+Message: Congratulations! You have won a FREE prize, click this link now to claim
+Prediction: spam
+
+Message: WINNER! You won 1000 cash, call now to collect your prize
+Prediction: spam
+
+Message: Hi, are we meeting for class tomorrow at 8:30?
+Prediction: ham
+
+Message: Ok, I will bring the lab manual tomorrow
+Prediction: ham
+
+Now you try! Type a message (or 'exit' to stop):
+> Prediction: ham
+> 
